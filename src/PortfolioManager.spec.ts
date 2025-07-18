@@ -1,8 +1,5 @@
 import { expect } from "chai";
-import {
-  mockIProperty,
-  mockMeter,
-} from "./Mocks.js";
+import { mockIProperty, mockMeter } from "./Mocks.js";
 import { PortfolioManager } from "./PortfolioManager.js";
 import { PortfolioManagerApi } from "./PortfolioManagerApi.js";
 import { IAccount, IMeter, IProperty } from "./types/index.js";
@@ -11,24 +8,57 @@ const BASE_URL = "https://portfoliomanager.energystar.gov/wstest/";
 
 describe("PortfolioManager", async () => {
   let api: PortfolioManagerApi;
+  let apiSecondary: PortfolioManagerApi;
   let pm: PortfolioManager;
+  let pmSecondary: PortfolioManager;
   let account: IAccount;
+  let accountSecondary: IAccount;
   let testProperty: IProperty;
   let testMeter: IMeter;
   async function ensureTestFixtures(done: () => void) {
     const USERNAME = process.env.PM_USERNAME;
     const PASSWORD = process.env.PM_PASSWORD;
 
+    const SECONDARY_USERNAME = process.env.PM_SECONDARY_USERNAME;
+    const SECONDARY_PASSWORD = process.env.PM_SECONDARY_PASSWORD;
+
     if (!USERNAME || !PASSWORD) {
       throw new Error(
         "Please set PM_USERNAME and PM_PASSWORD environment variables"
       );
+    }
+
+    if (!SECONDARY_USERNAME || !SECONDARY_PASSWORD) {
+      console.warn(
+        "Set PM_SECONDARY_USERNAME and PM_SECONDARY_PASSWORD environment variables to run connection tests"
+      );
+    } else {
+      console.warn(
+        "ESPM API does not support programatically sending connection requests",
+        "Connection/Share tests may fail if not manually set up by sending a connection request from secondary account to primary account through the UI"
+      );
+      apiSecondary = new PortfolioManagerApi(
+        BASE_URL,
+        SECONDARY_USERNAME,
+        SECONDARY_PASSWORD
+      );
+      console.log("apiSecondary", apiSecondary);
+      pmSecondary = new PortfolioManager(apiSecondary);
+      console.log("pmSecondary", pmSecondary);
+      accountSecondary = await pmSecondary.getAccount(false);
+      console.log("accountSecondary", accountSecondary);
     }
     api = new PortfolioManagerApi(BASE_URL, USERNAME, PASSWORD);
     pm = new PortfolioManager(api);
     account = await pm.getAccount();
     testProperty = await pm.createProperty(mockIProperty());
     testMeter = await pm.createMeter(testProperty.id, mockMeter());
+    if (SECONDARY_USERNAME && SECONDARY_PASSWORD) {
+      console.log("accepting connection from secondary account");
+      const pendingConnections = await pm.getPendingConnections();
+      console.log(pendingConnections);
+      // await pm.acceptConnection(accountSecondary.id);
+    }
     done();
   }
 
