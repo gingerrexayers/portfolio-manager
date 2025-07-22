@@ -3,3 +3,6 @@ export * from "./IClientMeter.js";
 export * from "./IClientMeterPropertyAssociation.js";
 export * from "./IClientMetric.js";
 export * from "./IClientProperty.js";
+export * from "./IClientPendingConnectionRequest.js";
+export * from "./IClientPendingShareRequest.js";
+export * from "./IClientNotification.js";
