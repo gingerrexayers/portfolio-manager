@@ -112,7 +112,10 @@ export class PortfolioManagerApi {
           "meterPropertyAssociationList.wasteMeterAssociation.meters.meterId" ||
         jpath === "meterData.meterDelivery" ||
         jpath === "meterData.meterConsumption" ||
-        jpath === "additionalIdentifiers.additionalIdentifier"
+        jpath === "additionalIdentifiers.additionalIdentifier" ||
+        jpath === "pendingList.property" ||
+        jpath === "pendingList.account" ||
+        jpath === "pendingList.meter"
       );
     },
   };

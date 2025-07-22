@@ -42,23 +42,14 @@ describe("PortfolioManager", async () => {
         SECONDARY_USERNAME,
         SECONDARY_PASSWORD
       );
-      console.log("apiSecondary", apiSecondary);
       pmSecondary = new PortfolioManager(apiSecondary);
-      console.log("pmSecondary", pmSecondary);
       accountSecondary = await pmSecondary.getAccount(false);
-      console.log("accountSecondary", accountSecondary);
     }
     api = new PortfolioManagerApi(BASE_URL, USERNAME, PASSWORD);
     pm = new PortfolioManager(api);
     account = await pm.getAccount();
     testProperty = await pm.createProperty(mockIProperty());
     testMeter = await pm.createMeter(testProperty.id, mockMeter());
-    if (SECONDARY_USERNAME && SECONDARY_PASSWORD) {
-      console.log("accepting connection from secondary account");
-      const pendingConnections = await pm.getPendingConnections();
-      console.log(pendingConnections);
-      // await pm.acceptConnection(accountSecondary.id);
-    }
     done();
   }
 
