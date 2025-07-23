@@ -5,7 +5,7 @@ import {
   XMLParser,
   XmlBuilderOptions,
 } from "fast-xml-parser";
-import type { RequestInit, Response } from "node-fetch";
+import { RequestInit } from "node-fetch";
 import { isNumber, isString } from "type-guards";
 import { isDate } from "util/types";
 import { btoa } from "./functions/index.js";
@@ -151,10 +151,7 @@ export class PortfolioManagerApi {
     const defaults = { method: "GET", headers } as RequestInit;
     const init: RequestInit = deepmerge({}, defaults, options);
     const url = this.endpoint + path;
-    // console.log('PortfolioManagerApi.fetch', { url, init })
-    // Dynamically import node-fetch
-    const fetchModule = await import('node-fetch');
-    const fetch = fetchModule.default;
+    const fetch = require('node-fetch');
     const response = await fetch(url, init);
 
     // console.log('PortfolioManagerApi.fetch::response.status', response.status)
