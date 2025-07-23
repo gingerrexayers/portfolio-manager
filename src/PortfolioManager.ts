@@ -28,9 +28,7 @@ import {
   IClientPendingConnectionRequest,
   IClientPendingShareRequest,
   IClientNotification,
-  IPendingAccount,
-  IPendingProperty,
-  IPendingMeter,
+  ICustomer,
   INotification,
   ShareLevel,
   AcceptRejectAction,
@@ -905,9 +903,9 @@ export class PortfolioManager {
 
   /**
    * Fetches a list of customers that you are connected to.
-   * @returns A promise that resolves to an array of customer links.
+   * @returns A promise that resolves to an array of simplified customer objects.
    */
-  async getCustomerList(): Promise<ILink[]> {
+  async getCustomerList(): Promise<ICustomer[]> {
     const response = await this.api.customerListGet();
     
     if (response["@_status"] != "Ok") {
@@ -920,7 +918,10 @@ export class PortfolioManager {
       return [];
     }
     if (isIPopulatedResponse(response)) {
-      return response.links.link;
+      return response.links.link.map((link) => ({
+        id: parseInt(link["@_id"] || "0"),
+        organizationName: link["@_hint"] || "",
+      }));
     }
     return [];
   }
