@@ -11,7 +11,7 @@
     "listEmittedFiles": false,
     "listFiles": false,
     "module": "CommonJS",
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "node",
     "noFallthroughCasesInSwitch": true,
     "outDir": "dist",
     "pretty": true,
