@@ -902,4 +902,26 @@ export class PortfolioManager {
       createdByAccountId: n.notificationCreatedByAccountId,
     }));
   }
+
+  /**
+   * Fetches a list of customers that you are connected to.
+   * @returns A promise that resolves to an array of customer links.
+   */
+  async getCustomerList(): Promise<ILink[]> {
+    const response = await this.api.customerListGet();
+    
+    if (response["@_status"] != "Ok") {
+      throw new Error(
+        "Request Error, response: " + JSON.stringify(response, null, 2)
+      );
+    }
+
+    if (isIEmptyResponse(response)) {
+      return [];
+    }
+    if (isIPopulatedResponse(response)) {
+      return response.links.link;
+    }
+    return [];
+  }
 }
