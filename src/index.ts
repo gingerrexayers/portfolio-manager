@@ -1,21 +1,15 @@
-#!/usr/bin/env node
-import * as url from "node:url";
+export * from "./PortfolioManager";
+export * from "./PortfolioManagerApi";
+export * from "./cli/index";
+export * from "./types/index";
 
-export * from "./PortfolioManager.js";
-export * from "./PortfolioManagerApi.js";
-export * from "./cli/index.js";
-export * from "./types/index.js";
-
-import { PortfolioManagerCommand } from "./cli/PortfolioManagerCommand.js";
+import { PortfolioManagerCommand } from "./cli/PortfolioManagerCommand";
 
 async function main() {
   const cli = new PortfolioManagerCommand();
   cli.parse(process.argv);
 }
 
-if (import.meta.url.startsWith("file:")) {
-  const modulePath = url.fileURLToPath(import.meta.url);
-  if (process.argv[1] === modulePath) {
-    main();
-  }
+if (require.main === module) {
+  main();
 }
