@@ -5,7 +5,7 @@ import {
   XMLParser,
   XmlBuilderOptions,
 } from "fast-xml-parser";
-import fetch, { BodyInit, RequestInit, Response } from "node-fetch";
+import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import { isNumber, isString } from "type-guards";
 import { isDate } from "util/types";
 import { btoa } from "./functions/index.js";
@@ -52,8 +52,8 @@ import {
 
 export class PortfolioManagerApiError extends Error {
   static async fromResponse(response: any) {
-    const responseText = await response.text();
-    const url = response.url;
+    const responseText = response.data ? (typeof response.data === 'string' ? response.data : JSON.stringify(response.data)) : '';
+    const url = response.config?.url || '';
     return new PortfolioManagerApiError(
       response.status,
       response.statusText,
@@ -139,7 +139,7 @@ export class PortfolioManagerApi {
     private readonly password: string
   ) {}
 
-  async fetch<RESP>(path: string, options: RequestInit = {}): Promise<any> {
+  async fetch<RESP>(path: string, options: Partial<AxiosRequestConfig> = {}): Promise<any> {
     const headers: Record<string, string> = {
       "Content-Type": "application/xml",
     };
@@ -148,34 +148,26 @@ export class PortfolioManagerApi {
       headers["Authorization"] =
         "Basic " + btoa(`${this.username}:${this.password}`);
     }
-    const defaults = { method: "GET", headers } as RequestInit;
-    const init: RequestInit = deepmerge({}, defaults, options);
+    const defaults: AxiosRequestConfig = { method: "GET", headers };
+    const init: AxiosRequestConfig = deepmerge({}, defaults, options);
     const url = this.endpoint + path;
-
-    // console.log('PortfolioManagerApi.fetch', { url, init })
-    const response = await fetch(url, init);
-
-    // console.log('PortfolioManagerApi.fetch::response.status', response.status)
-
-    // raise exception on 400-599 status codes
-    if (response.status >= 400 && response.status < 600) {
-      // console.log(
-      //   "response",
-      //   response.status,
-      //   response.statusText,
-      //   await response.text(),
-      //   options,
-      //   path
-      // );
-      const error = await PortfolioManagerApiError.fromResponse(response);
-      throw error;
+    // Use axios for HTTP requests
+    let response: AxiosResponse;
+    try {
+      response = await axios({ url, ...init, responseType: 'text' });
+    } catch (error: any) {
+      if (error.response) {
+        // HTTP error from server
+        const apiError = await PortfolioManagerApiError.fromResponse(error.response);
+        throw apiError;
+      } else {
+        // Network or other error
+        throw error;
+      }
     }
-
-    const xmlResp = await response.text();
+    const xmlResp = response.data;
     const parser = new XMLParser(this.xmlParserOptions);
     const parsed = parser.parse(xmlResp) as RESP;
-
-    // console.log("response", {response, xmlResp, parsed});
     return parsed;
   }
 
@@ -183,8 +175,8 @@ export class PortfolioManagerApi {
     const builder = new XMLBuilder(this.xmlBuilderOptions);
     const xmlData: string = builder.build(data);
     const method = "POST";
-    const body: BodyInit = xmlData;
-    const init: RequestInit = { method, body };
+    const body: string = xmlData;
+    const init: Partial<AxiosRequestConfig> = { method, data: body };
     return await this.fetch<RESP>(path, init);
   }
 
@@ -192,12 +184,12 @@ export class PortfolioManagerApi {
     const builder = new XMLBuilder(this.xmlBuilderOptions);
     const xmlData: string = builder.build(data);
     const method = "PUT";
-    const body: BodyInit = xmlData;
-    const init: RequestInit = { method, body };
+    const body: string = xmlData;
+    const init: Partial<AxiosRequestConfig> = { method, data: body };
     return await this.fetch<RESP>(path, init);
   }
 
-  async get<RESP>(path: string, options: RequestInit = {}): Promise<RESP> {
+  async get<RESP>(path: string, options: Partial<AxiosRequestConfig> = {}): Promise<RESP> {
     return this.fetch<RESP>(path, options);
   }
 
@@ -418,7 +410,7 @@ export class PortfolioManagerApi {
       `month=${month}`,
       `measurementSystem=${measurementSystem}`,
     ];
-    const options: RequestInit = {
+    const options: Partial<AxiosRequestConfig> = {
       headers: {
         "PM-Metrics": metrics.join(","),
       },
@@ -444,7 +436,7 @@ export class PortfolioManagerApi {
       `month=${month}`,
       `measurementSystem=${measurementSystem}`,
     ];
-    const options: RequestInit = {
+    const options: Partial<AxiosRequestConfig> = {
       headers: {
         "PM-Metrics": metrics.join(","),
       },
