@@ -3,7 +3,7 @@
  * @module Types.Client
  * Simplified client-facing interfaces for notification management.
  */
-import { NotificationTypeCode } from "../xml";
+import { NotificationTypeCode } from "../xml/index.js";
 
 /**
  * Represents a notification from the ESPM system in a simplified, flattened format.

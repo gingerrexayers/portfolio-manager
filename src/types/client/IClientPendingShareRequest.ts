@@ -4,7 +4,7 @@
  * Simplified client-facing interfaces for share management.
  */
 
-import { ShareLevel } from "../xml";
+import { ShareLevel } from "../xml/index.js";
 
 /**
  * Represents a pending property or meter share request in a simplified, flattened format.

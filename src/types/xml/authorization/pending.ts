@@ -6,9 +6,9 @@
  * from the various /pending/list endpoints.
  */
 
-import { IAudit, ILink, IAddress } from "..";
-import { IMeter } from "../meter";
-import { IProperty } from "../property";
+import { IAudit, ILink, IAddress } from "../../index.js";
+import { IMeter } from "../meter/IMeter.js";
+import { IProperty } from "../property/property.js";
 import { ShareLevel } from "./ShareLevel.js";
 
 // xml: connectionAudit / shareAudit (logType)
