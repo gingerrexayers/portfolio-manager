@@ -5,7 +5,7 @@ import {
   XMLParser,
   XmlBuilderOptions,
 } from "fast-xml-parser";
-import fetch, { BodyInit, RequestInit, Response } from "node-fetch";
+import type { RequestInit, Response } from "node-fetch";
 import { isNumber, isString } from "type-guards";
 import { isDate } from "util/types";
 import { btoa } from "./functions/index.js";
@@ -51,7 +51,7 @@ import {
 } from "./types/xml/index.js";
 
 export class PortfolioManagerApiError extends Error {
-  static async fromResponse(response: Response) {
+  static async fromResponse(response: any) {
     const responseText = await response.text();
     const url = response.url;
     return new PortfolioManagerApiError(
@@ -152,6 +152,9 @@ export class PortfolioManagerApi {
     const init: RequestInit = deepmerge({}, defaults, options);
     const url = this.endpoint + path;
     // console.log('PortfolioManagerApi.fetch', { url, init })
+    // Dynamically import node-fetch
+    const fetchModule = await import('node-fetch');
+    const fetch = fetchModule.default;
     const response = await fetch(url, init);
 
     // console.log('PortfolioManagerApi.fetch::response.status', response.status)
@@ -182,7 +185,7 @@ export class PortfolioManagerApi {
     const builder = new XMLBuilder(this.xmlBuilderOptions);
     const xmlData: string = builder.build(data);
     const method = "POST";
-    const body: BodyInit = xmlData;
+    const body: string = xmlData;
     const init: RequestInit = { method, body };
     return await this.fetch<RESP>(path, init);
   }
@@ -191,7 +194,7 @@ export class PortfolioManagerApi {
     const builder = new XMLBuilder(this.xmlBuilderOptions);
     const xmlData: string = builder.build(data);
     const method = "PUT";
-    const body: BodyInit = xmlData;
+    const body: string = xmlData;
     const init: RequestInit = { method, body };
     return await this.fetch<RESP>(path, init);
   }
