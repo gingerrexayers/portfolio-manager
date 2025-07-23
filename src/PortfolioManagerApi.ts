@@ -49,6 +49,7 @@ import {
   ITerminateSharingResponsePayload,
   toXmlDateString,
 } from "./types/xml/index.js";
+import { IResponse } from "./types/xml/response/IResponse.js";
 
 export class PortfolioManagerApiError extends Error {
   static async fromResponse(response: any) {
@@ -566,5 +567,14 @@ export class PortfolioManagerApi {
     return this.get<IGetNotificationListResponse>(
       `/notification/list?clear=${clear}`
     );
+  }
+
+  /**
+   * GET /customer/list
+   * Returns a list of customers that you are connected to.
+   * see: https://portfoliomanager.energystar.gov/webservices/home/api/customer/list
+   */
+  async customerListGet(): Promise<IResponse> {
+    return this.get<IResponse>('customer/list');
   }
 }
