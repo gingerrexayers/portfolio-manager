@@ -1,6 +1,6 @@
 {
-  "name": "portfolio-manager",
-  "version": "0.0.0-semantic-release",
+  "name": "@gingerrexayers/portfolio-manager",
+  "version": "0.0.0-semantic-release-fork",
   "description": "Unofficial CLI Tool and SDK for Energy Star Portfolio Manager",
   "engines": {
     "node": ">=18 <=22"
@@ -43,6 +43,9 @@
     "deepmerge-ts": "^5.1.0",
     "fast-xml-parser": "^4.3.2",
     "type-guards": "^0.15.0"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "release": {
     "branches": [
