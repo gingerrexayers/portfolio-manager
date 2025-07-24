@@ -13,6 +13,7 @@ import {
   IAccountAccountGetResponse,
   IAdditionalIdentifier,
   ICreateSamplePropertiesPostResponse,
+  IGetCustomerListResponse,
   IGetNotificationListResponse,
   IGetPendingConnectionsResponse,
   IGetPendingMeterSharesResponse,
@@ -574,7 +575,7 @@ export class PortfolioManagerApi {
    * Returns a list of customers that you are connected to.
    * see: https://portfoliomanager.energystar.gov/webservices/home/api/customer/list
    */
-  async customerListGet(): Promise<IResponse> {
-    return this.get<IResponse>('customer/list');
+  async customerListGet(): Promise<IGetCustomerListResponse> {
+    return this.get<IGetCustomerListResponse>('customer/list');
   }
 }

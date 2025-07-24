@@ -32,6 +32,7 @@ import {
   INotification,
   ShareLevel,
   AcceptRejectAction,
+  IGetCustomerListResponse,
 } from "./types/index.js";
 
 async function sleep(seconds: number) {
@@ -908,17 +909,17 @@ export class PortfolioManager {
   async getCustomerList(): Promise<ICustomer[]> {
     const response = await this.api.customerListGet();
     
-    if (response["@_status"] != "Ok") {
+    if (response.response["@_status"] != "Ok") {
       throw new Error(
         "Request Error, response: " + JSON.stringify(response, null, 2)
       );
     }
 
-    if (isIEmptyResponse(response)) {
+    if (isIEmptyResponse(response.response)) {
       return [];
     }
-    if (isIPopulatedResponse(response)) {
-      return response.links.link.map((link) => ({
+    if (isIPopulatedResponse(response.response)) {
+      return response.response.links.link.map((link: any) => ({
         id: parseInt(link["@_id"] || "0"),
         organizationName: link["@_hint"] || "",
       }));
