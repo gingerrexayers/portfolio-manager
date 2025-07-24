@@ -3,7 +3,6 @@ import {
   IResponse,
   IPendingAccountList,
   INotificationList,
-  ILink,
 } from "../xml/index.js";
 import { IParsedXml } from "./IParsedXML.js";
 
@@ -52,5 +51,5 @@ export interface ISharingActionResponse extends IParsedXml {
  * @see https://portfoliomanager.energystar.gov/webservices/home/api/customer/list
  */
 export interface IGetCustomerListResponse extends IParsedXml {
-  links: ILink[];
+  response: IResponse;
 }

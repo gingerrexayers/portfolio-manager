@@ -908,7 +908,8 @@ export class PortfolioManager {
    */
   async getCustomerList(): Promise<ICustomer[]> {
     const response = await this.api.customerListGet();
-    
+    console.log(response);
+
     if (response.response["@_status"] != "Ok") {
       throw new Error(
         "Request Error, response: " + JSON.stringify(response, null, 2)
