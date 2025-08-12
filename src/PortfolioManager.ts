@@ -29,10 +29,10 @@ import {
   IClientPendingShareRequest,
   IClientNotification,
   ICustomer,
+  ICustomerListItem,
   INotification,
   ShareLevel,
   AcceptRejectAction,
-  IGetCustomerListResponse,
 } from "./types/index.js";
 
 async function sleep(seconds: number) {
@@ -903,10 +903,44 @@ export class PortfolioManager {
   }
 
   /**
+   * Fetches a specific customer by their account ID.
+   * @param accountId The ID of the customer account to retrieve.
+   * @returns A promise that resolves to a simplified customer object.
+   */
+  async getCustomer(accountId: number): Promise<ICustomer> {
+    const response = await this.api.customerGet(accountId);
+    
+    if (response.customer) {
+      return {
+        id: accountId,
+        username: response.customer.username,
+        billboardMetric: response.customer.billboardMetric,
+        includeTestPropertiesInGraphics: response.customer.includeTestPropertiesInGraphics,
+        firstName: response.customer.accountInfo.firstName,
+        lastName: response.customer.accountInfo.lastName,
+        address: {
+          address1: response.customer.accountInfo.address["@_address1"],
+          city: response.customer.accountInfo.address["@_city"],
+          state: response.customer.accountInfo.address["@_state"],
+          postalCode: response.customer.accountInfo.address["@_postalCode"],
+          country: response.customer.accountInfo.address["@_country"],
+        },
+        email: response.customer.accountInfo.email,
+        organization: response.customer.accountInfo.organization,
+        jobTitle: response.customer.accountInfo.jobTitle,
+      };
+    }
+    
+    throw new Error(
+      `No customer found:\n ${JSON.stringify(response, null, 2)}`
+    );
+  }
+
+  /**
    * Fetches a list of customers that you are connected to.
    * @returns A promise that resolves to an array of simplified customer objects.
    */
-  async getCustomerList(): Promise<ICustomer[]> {
+  async getCustomerList(): Promise<ICustomerListItem[]> {
     const response = await this.api.customerListGet();
     console.log(response);
 
