@@ -6,14 +6,15 @@ export class PortfolioManagerMeterAssociationListCommand extends PortfolioManage
   protected get examples() {
     return [
       "# customizing the output",
-      `${this.name} meter asscociation list --propertyIds <propertyId...> --indent 2`,
+      `${this.getFullCommand()} --propertyIds <propertyId...> --indent 2`,
       "",
       "# using with JQ to map the output to shell scripting friendlier output",
-      `${this.name} meter asscociation list --propertyIds <propertyId...> | jq -r '[.[] | .id] | @sh'`,
+      `${this.getFullCommand()} --propertyIds <propertyId...> | jq -r '[.[] | .id] | @sh'`,
     ];
   }
   constructor() {
     super("list");
+    this.addPortfolioManagerOptions();
     this.requiredOption(
       "--propertyIds <propertyId...>",
       "properties to fetch associated meters for"
@@ -22,12 +23,11 @@ export class PortfolioManagerMeterAssociationListCommand extends PortfolioManage
 
   protected async _action(): Promise<void> {
     const cmdOpts = this.opts();
-    console.error("meter association list", cmdOpts);
     const meterAssociation =
       await this.getPortfolioManagerClient().getMetersPropertiesAssociation(
-        cmdOpts.propertyIds || []
+        cmdOpts.propertyIds
       );
-    const indent = cmdOpts.indent ? parseInt(cmdOpts.indent) || 2 : undefined;
+    const indent = cmdOpts.indent;
     console.log(JSON.stringify(meterAssociation, null, indent));
   }
 }

@@ -22,15 +22,10 @@
     "target": "ES2015",
     "traceResolution": false,
     "types": [
-      "node",
-      "mocha"
+      "node"
     ],
   },
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
-  },
   "compileOnSave": false,
-  "exclude": ["node_modules", "dist"],
+  "exclude": ["node_modules", "dist", "src/**/*.spec.ts"],
   "include": ["src"],
 }

@@ -6,7 +6,7 @@ export class PortfolioManagerPropertyMetricsMonthlyCommand extends PortfolioMana
   protected _description = "Get monthly metrics for a property";
   protected get examples() { return [
     "# customizing the output",
-    `${this.getFullCommand()} property metrics monthly  --propertyId <propertyId> --fields name year month value --indent 2`,
+    `${this.getFullCommand()} --propertyId <propertyId> --fields name year month value --indent 2`,
   ];
   }
   protected fields = ["propertyId", "name", "uom", "year", "month", "value"];
@@ -15,6 +15,7 @@ export class PortfolioManagerPropertyMetricsMonthlyCommand extends PortfolioMana
   constructor() {
     super("monthly");
     const MONTHLY_METRICS = METRICS.filter((m) => m[14]).map((m) => [m[0]]);
+    this.addPortfolioManagerOptions();
     this.addFieldsOption(this.fields, this.defaultFields)
     this.requiredOption(
       "--propertyId <propertyId>",
@@ -30,9 +31,6 @@ export class PortfolioManagerPropertyMetricsMonthlyCommand extends PortfolioMana
   }
 
   protected async _action(): Promise<void> {
-    const cmdOpts = this.opts();
-    // write help text we don't want in output pipes to stderr
-    console.error("list property metrics monthly", cmdOpts);
     const {
       propertyId,
       year,
@@ -40,7 +38,7 @@ export class PortfolioManagerPropertyMetricsMonthlyCommand extends PortfolioMana
       include_null,
       metrics = undefined,
       fields,
-      _indent,
+      indent,
     } = this.opts();
     const pmClient = this.getPortfolioManagerClient();
 
@@ -54,16 +52,11 @@ export class PortfolioManagerPropertyMetricsMonthlyCommand extends PortfolioMana
         exclude_null
       );
 
-      const mapped = Object.values(items).map((item: Record<string, any>) => {
-        return fields.reduce((acc: Record<string, any>, field: string) => {
-          acc[field] = item[field];
-          return acc;
-        }, {});
-      });
-      const indent = parseInt(_indent);
+      const mapped = items.map((item) => this.pickFields(item, fields));
       console.log(JSON.stringify(mapped, null, indent));
     }
     catch (e) {
+      process.exitCode = 1;
       if (e instanceof PortfolioManagerApiError) {
         console.error('api error', e.message, e.status, e.statusText, e.responseText);
       }

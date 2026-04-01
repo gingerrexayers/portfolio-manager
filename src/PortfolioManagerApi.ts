@@ -5,7 +5,7 @@ import {
   XMLParser,
   XmlBuilderOptions,
 } from "fast-xml-parser";
-import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
+import fetch from "node-fetch";
 import { isNumber, isString } from "type-guards";
 import { isDate } from "util/types";
 import { btoa } from "./functions/index.js";
@@ -27,6 +27,7 @@ import {
   IMeterIdentifierPutResponse,
   IMeterIdentifierTypesListGetResponse,
   IMeterMeterGetResponse,
+  IMeterMeterDeleteResponse,
   IMeterMeterListGetResponse,
   IMeterMeterPostResponse,
   IMeterPropertyAssociationGetResponse,
@@ -35,6 +36,7 @@ import {
   IPropertyMetricsGetResponse,
   IPropertyMetricsMonthlyGetResponse,
   IPropertyPropertyGetResponse,
+  IPropertyPropertyDeleteResponse,
   IPropertyPropertyListGetResponse,
   IPropertyPropertyPostResponse,
   ISharingActionResponse,
@@ -45,7 +47,7 @@ import {
   IMeter,
   IMeterConsumption,
   IMeterData,
-  IMeterDataPost,
+  IMeterDataPostRequest,
   IProperty,
   ISharingResponsePayload,
   ITerminateSharingResponsePayload,
@@ -54,14 +56,13 @@ import {
 import { IResponse } from "./types/xml/response/IResponse.js";
 
 export class PortfolioManagerApiError extends Error {
-  static async fromResponse(response: any) {
-    const responseText = response.data ? (typeof response.data === 'string' ? response.data : JSON.stringify(response.data)) : '';
-    const url = response.config?.url || '';
+  static async fromResponse(response: Response) {
+    const responseText = await response.text();
     return new PortfolioManagerApiError(
       response.status,
       response.statusText,
       responseText,
-      url
+      response.url
     );
   }
   constructor(
@@ -75,7 +76,7 @@ export class PortfolioManagerApiError extends Error {
 }
 
 export function isPortfolioManagerApiError(
-  obj: any
+  obj: unknown
 ): obj is PortfolioManagerApiError {
   return obj instanceof PortfolioManagerApiError;
 }
@@ -100,6 +101,8 @@ export class PortfolioManagerApi {
   xmlParserOptions: Partial<X2jOptions> = {
     ignoreAttributes: false,
     isArray: (name, jpath, isLeafNode, isAttribute): boolean => {
+      // ensure response.links.link is always an array even when there
+      // is only one link which results in  object by default
       return (
         jpath === "response.links.link" ||
         jpath === "propertyMetrics.metric" ||
@@ -142,7 +145,7 @@ export class PortfolioManagerApi {
     private readonly password: string
   ) {}
 
-  async fetch<RESP>(path: string, options: Partial<AxiosRequestConfig> = {}): Promise<any> {
+  async fetch<RESP>(path: string, options: RequestInit = {}): Promise<RESP> {
     const headers: Record<string, string> = {
       "Content-Type": "application/xml",
     };
@@ -151,49 +154,63 @@ export class PortfolioManagerApi {
       headers["Authorization"] =
         "Basic " + btoa(`${this.username}:${this.password}`);
     }
-    const defaults: AxiosRequestConfig = { method: "GET", headers };
-    const init: AxiosRequestConfig = deepmerge({}, defaults, options);
+    const defaults: RequestInit = { method: "GET", headers };
+    const init: RequestInit = deepmerge({}, defaults, options);
     const url = this.endpoint + path;
-    // Use axios for HTTP requests
-    let response: AxiosResponse;
-    try {
-      response = await axios({ url, ...init, responseType: 'text' });
-    } catch (error: any) {
-      if (error.response) {
-        // HTTP error from server
-        const apiError = await PortfolioManagerApiError.fromResponse(error.response);
-        throw apiError;
-      } else {
-        // Network or other error
-        throw error;
-      }
+    const response = await fetch(url, init);
+
+    // raise exception on 400-599 status codes
+    if (response.status >= 400 && response.status < 600) {
+      const error = await PortfolioManagerApiError.fromResponse(response);
+      throw error;
     }
-    const xmlResp = response.data;
+
+    const xmlResp = await response.text();
+    if (xmlResp.trim().length === 0) {
+      throw new PortfolioManagerApiError(
+        response.status,
+        response.statusText,
+        "Empty response body",
+        response.url
+      );
+    }
+
     const parser = new XMLParser(this.xmlParserOptions);
-    const parsed = parser.parse(xmlResp) as RESP;
-    return parsed;
+    try {
+      return parser.parse(xmlResp) as RESP;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown XML parse failure";
+      const snippet = xmlResp.slice(0, 500);
+      throw new PortfolioManagerApiError(
+        response.status,
+        response.statusText,
+        `XML parse failure: ${message}\nResponse snippet: ${snippet}`,
+        response.url
+      );
+    }
   }
 
   async post<REQ, RESP>(path: string, data: REQ): Promise<RESP> {
     const builder = new XMLBuilder(this.xmlBuilderOptions);
     const xmlData: string = builder.build(data);
-    const method = "POST";
-    const body: string = xmlData;
-    const init: Partial<AxiosRequestConfig> = { method, data: body };
+    const init: RequestInit = { method: "POST", body: xmlData };
     return await this.fetch<RESP>(path, init);
   }
 
   async put<REQ, RESP>(path: string, data: REQ): Promise<RESP> {
     const builder = new XMLBuilder(this.xmlBuilderOptions);
     const xmlData: string = builder.build(data);
-    const method = "PUT";
-    const body: string = xmlData;
-    const init: Partial<AxiosRequestConfig> = { method, data: body };
+    const init: RequestInit = { method: "PUT", body: xmlData };
     return await this.fetch<RESP>(path, init);
   }
 
-  async get<RESP>(path: string, options: Partial<AxiosRequestConfig> = {}): Promise<RESP> {
+  async get<RESP>(path: string, options: RequestInit = {}): Promise<RESP> {
     return this.fetch<RESP>(path, options);
+  }
+
+  async delete<RESP>(path: string, options: RequestInit = {}): Promise<RESP> {
+    return this.fetch<RESP>(path, { ...options, method: "DELETE" });
   }
 
   // https://portfoliomanager.energystar.gov/webservices/home/test/api/account/account/get
@@ -206,11 +223,28 @@ export class PortfolioManagerApi {
     return this.get<IMeterMeterGetResponse>(`meter/${meterId}`);
   }
 
+  async meterMeterDelete(meterId: number): Promise<IMeterMeterDeleteResponse> {
+    return this.delete<IMeterMeterDeleteResponse>(`meter/${meterId}`);
+  }
+
   // https://portfoliomanager.energystar.gov/webservices/home/api/property/property/get
   async propertyPropertyGet(
     propertyId: number
   ): Promise<IPropertyPropertyGetResponse> {
     return this.get<IPropertyPropertyGetResponse>(`property/${propertyId}`);
+  }
+
+  /**
+   * Deletes a property by unlinking it from the account.
+   *
+   * Note: the PM API performs a soft delete — the property is removed from the
+   * account's property list, but GET /property/{id} will still return 200 with
+   * the full entity. Any meters on the property become inaccessible (403).
+   */
+  async propertyPropertyDelete(
+    propertyId: number
+  ): Promise<IPropertyPropertyDeleteResponse> {
+    return this.delete<IPropertyPropertyDeleteResponse>(`property/${propertyId}`);
   }
 
   // https://portfoliomanager.energystar.gov/webservices/home/api/property/property/post
@@ -236,9 +270,9 @@ export class PortfolioManagerApi {
   // https://portfoliomanager.energystar.gov/webservices/home/api/meter/consumptionData/post
   async meterConsumptionDataPost(
     meterId: number,
-    meterConsumption: IMeterDataPost
+    meterConsumption: IMeterDataPostRequest
   ): Promise<IMeterData> {
-    return this.post<IMeterDataPost, IMeterData>(
+    return this.post<IMeterDataPostRequest, IMeterData>(
       `meter/${meterId}/consumptionData`,
       meterConsumption
     );
@@ -413,7 +447,7 @@ export class PortfolioManagerApi {
       `month=${month}`,
       `measurementSystem=${measurementSystem}`,
     ];
-    const options: Partial<AxiosRequestConfig> = {
+    const options: RequestInit = {
       headers: {
         "PM-Metrics": metrics.join(","),
       },
@@ -439,7 +473,7 @@ export class PortfolioManagerApi {
       `month=${month}`,
       `measurementSystem=${measurementSystem}`,
     ];
-    const options: Partial<AxiosRequestConfig> = {
+    const options: RequestInit = {
       headers: {
         "PM-Metrics": metrics.join(","),
       },
