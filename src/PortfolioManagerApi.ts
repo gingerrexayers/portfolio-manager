@@ -5,7 +5,7 @@ import {
   XMLParser,
   XmlBuilderOptions,
 } from "fast-xml-parser";
-import fetch, { RequestInit as FetchRequestInit, Response as FetchResponse } from "node-fetch";
+import fetch, { RequestInit, Response } from "node-fetch";
 import { isNumber, isString } from "type-guards";
 import { isDate } from "util/types";
 import { btoa } from "./functions/index.js";
@@ -58,7 +58,7 @@ import {
 import { IResponse } from "./types/xml/response/IResponse.js";
 
 export class PortfolioManagerApiError extends Error {
-  static async fromResponse(response: FetchResponse) {
+  static async fromResponse(response: Response) {
     const responseText = await response.text();
     return new PortfolioManagerApiError(
       response.status,
@@ -147,7 +147,7 @@ export class PortfolioManagerApi {
     private readonly password: string
   ) {}
 
-  async fetch<RESP>(path: string, options: FetchRequestInit = {}): Promise<RESP> {
+  async fetch<RESP>(path: string, options: RequestInit = {}): Promise<RESP> {
     const headers: Record<string, string> = {
       "Content-Type": "application/xml",
     };
@@ -156,8 +156,8 @@ export class PortfolioManagerApi {
       headers["Authorization"] =
         "Basic " + btoa(`${this.username}:${this.password}`);
     }
-    const defaults: FetchRequestInit = { method: "GET", headers };
-    const init: FetchRequestInit = deepmerge({}, defaults, options);
+    const defaults: RequestInit = { method: "GET", headers };
+    const init: RequestInit = deepmerge({}, defaults, options);
     const url = this.endpoint + path;
     const response = await fetch(url, init);
 
@@ -196,22 +196,22 @@ export class PortfolioManagerApi {
   async post<REQ, RESP>(path: string, data: REQ): Promise<RESP> {
     const builder = new XMLBuilder(this.xmlBuilderOptions);
     const xmlData: string = builder.build(data);
-    const init: FetchRequestInit = { method: "POST", body: xmlData };
+    const init: RequestInit = { method: "POST", body: xmlData };
     return await this.fetch<RESP>(path, init);
   }
 
   async put<REQ, RESP>(path: string, data: REQ): Promise<RESP> {
     const builder = new XMLBuilder(this.xmlBuilderOptions);
     const xmlData: string = builder.build(data);
-    const init: FetchRequestInit = { method: "PUT", body: xmlData };
+    const init: RequestInit = { method: "PUT", body: xmlData };
     return await this.fetch<RESP>(path, init);
   }
 
-  async get<RESP>(path: string, options: FetchRequestInit = {}): Promise<RESP> {
+  async get<RESP>(path: string, options: RequestInit = {}): Promise<RESP> {
     return this.fetch<RESP>(path, options);
   }
 
-  async delete<RESP>(path: string, options: FetchRequestInit = {}): Promise<RESP> {
+  async delete<RESP>(path: string, options: RequestInit = {}): Promise<RESP> {
     return this.fetch<RESP>(path, { ...options, method: "DELETE" });
   }
 
@@ -449,7 +449,7 @@ export class PortfolioManagerApi {
       `month=${month}`,
       `measurementSystem=${measurementSystem}`,
     ];
-    const options: FetchRequestInit = {
+    const options: RequestInit = {
       headers: {
         "PM-Metrics": metrics.join(","),
       },
@@ -475,7 +475,7 @@ export class PortfolioManagerApi {
       `month=${month}`,
       `measurementSystem=${measurementSystem}`,
     ];
-    const options: FetchRequestInit = {
+    const options: RequestInit = {
       headers: {
         "PM-Metrics": metrics.join(","),
       },
