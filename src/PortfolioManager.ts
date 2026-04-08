@@ -6,6 +6,8 @@ import { parseLinkId } from "./functions/parseLinkId.js";
 import {
   IAccount,
   IAdditionalIdentifier,
+  IBuilding,
+  IClientBuilding,
   IClientConsumption,
   IClientMeter,
   IClientMeterPropertyAssociation,
@@ -124,7 +126,8 @@ export class PortfolioManager {
         additionalIdentifier
       );
       if (isIPopulatedResponse(response.response)) {
-        return response.response.links.link;
+        const link = response.response.links.link;
+        return Array.isArray(link) ? link : [link];
       }
       throw new Error(`Unable to create additionalIdentifier: ${meterId}`);
     } catch (error) {
@@ -151,7 +154,8 @@ export class PortfolioManager {
         additionalIdentifier
       );
       if (isIPopulatedResponse(response.response)) {
-        return response.response.links.link;
+        const link = response.response.links.link;
+        return Array.isArray(link) ? link : [link];
       }
       throw new Error(`Unable to update additionalIdentifier: ${meterId}`);
     } catch (error) {
@@ -322,9 +326,10 @@ export class PortfolioManager {
       // appear as [ function ] even though respone.links was ''.
       return [];
     }
-    if (isIPopulatedResponse(response.response)) {
-      return response.response.links.link;
-    }
+      if (isIPopulatedResponse(response.response)) {
+        const link = response.response.links.link;
+        return Array.isArray(link) ? link : [link];
+      }
     // just some defensive coding in csae the response is not empty or populated
     return [];
   }
@@ -485,7 +490,8 @@ export class PortfolioManager {
         `No properties found:\n ${JSON.stringify(response, null, 2)}`
       );
     }
-    return response.response.links.link;
+    const link = response.response.links.link;
+    return Array.isArray(link) ? link : [link];
   }
 
   async getProperties(accountId?: number): Promise<IClientProperty[]> {
@@ -501,6 +507,60 @@ export class PortfolioManager {
       })
     );
     return properties;
+  }
+
+  async getBuildingLinks(propertyId: number): Promise<ILink[]> {
+    const response = await this.api.propertyBuildingListGet(propertyId);
+
+    if (!isIPopulatedResponse(response.response)) {
+      return [];
+    }
+    const link = response.response.links.link;
+    // Handle both single link (object) and multiple links (array)
+    return Array.isArray(link) ? link : [link];
+  }
+
+  async getBuildings(propertyId: number): Promise<IClientBuilding[]> {
+    const links = await this.getBuildingLinks(propertyId);
+    const buildings = await Promise.all(
+      links.map(async (link) => {
+        const id = parseLinkId(link);
+        if (id === undefined) {
+          throw new Error(`Invalid building id in link: ${JSON.stringify(link)}`);
+        }
+        return await this.getBuilding(id);
+      })
+    );
+    return buildings;
+  }
+
+  async getBuilding(buildingId: number): Promise<IClientBuilding> {
+    const response = await this.api.buildingBuildingGet(buildingId);
+    if (response.building) {
+      const building = { ...response.building, id: buildingId };
+      return this.mapBuildingToClient(building);
+    }
+    throw new Error(`No building found:\n ${JSON.stringify(response, null, 2)}`);
+  }
+
+  private mapBuildingToClient(building: IBuilding & { id: number }): IClientBuilding {
+    return {
+      id: building.id,
+      name: building.name,
+      constructionStatus: building.constructionStatus,
+      primaryFunction: building.primaryFunction,
+      grossFloorArea: building.grossFloorArea?.value || 0,
+      yearBuilt: building.yearBuilt,
+      address: {
+        address1: building.address?.["@_address1"] || "",
+        city: building.address?.["@_city"] || "",
+        state: building.address?.["@_state"] || "",
+        postalCode: building.address?.["@_postalCode"] || "",
+        country: building.address?.["@_country"] || "USA",
+      },
+      occupancyPercentage: building.occupancyPercentage,
+      isFederalProperty: building.isFederalProperty,
+    };
   }
 
   async getPropertyMonthlyMetrics(
@@ -980,7 +1040,9 @@ export class PortfolioManager {
       return [];
     }
     if (isIPopulatedResponse(response.response)) {
-      return response.response.links.link.map((link: any) => ({
+      const link = response.response.links.link;
+      const links = Array.isArray(link) ? link : [link];
+      return links.map((link: any) => ({
         id: parseInt(link["@_id"] || "0"),
         organizationName: link["@_hint"] || "",
       }));

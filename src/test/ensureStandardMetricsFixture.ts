@@ -37,9 +37,10 @@ async function ensureMetricsFixtureMeter(
   propertyId: number
 ): Promise<number> {
   const listResponse = await api.meterMeterListGet(propertyId);
-  const links: ILink[] = isIPopulatedResponse(listResponse.response)
+  const rawLinks = isIPopulatedResponse(listResponse.response)
     ? listResponse.response.links.link
     : [];
+  const links: ILink[] = Array.isArray(rawLinks) ? rawLinks : [rawLinks];
 
   const existing = links.find((link) => link["@_hint"] === FIXTURE_METER_NAME);
   if (existing) {

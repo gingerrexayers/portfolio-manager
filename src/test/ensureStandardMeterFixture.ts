@@ -11,9 +11,10 @@ export async function ensureStandardMeterFixture(
   meterName: string = STANDARD_METER_NAME
 ): Promise<IMeter> {
   const listResponse = await api.meterMeterListGet(propertyId);
-  const links = isIPopulatedResponse(listResponse.response)
+  const rawLinks = isIPopulatedResponse(listResponse.response)
     ? listResponse.response.links.link
     : [];
+  const links = Array.isArray(rawLinks) ? rawLinks : [rawLinks];
 
   const existing = links.find((link) => link["@_hint"] === meterName);
   if (existing) {

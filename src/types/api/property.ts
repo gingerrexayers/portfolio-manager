@@ -1,4 +1,5 @@
 import {
+  IBuilding,
   IProperty,
   IResponse,
   PropertyMetrics,
@@ -43,4 +44,12 @@ export interface ICreateSamplePropertiesPostResponse extends IParsedXml {
 
 export interface IGetPendingPropertySharesResponse extends IParsedXml {
   pendingList: IPendingPropertyList;
+}
+
+export interface IPropertyBuildingListGetResponse extends IParsedXml {
+  response: IResponse;
+}
+
+export interface IBuildingBuildingGetResponse extends IParsedXml {
+  building: IBuilding;
 }

@@ -1,3 +1,4 @@
+export * from "./IClientBuilding.js";
 export * from "./IClientConsumption.js";
 export * from "./IClientMeter.js";
 export * from "./IClientMeterPropertyAssociation.js";

@@ -32,9 +32,9 @@ export function isIPopulatedResponse(obj: unknown): obj is IPopoulatedResponse {
   if (!isRecord(links)) return false;
   if (!Object.hasOwn(links, "link")) return false;
 
-  return (
-    Array.isArray(links["link"])
-  );
+  // link can be a single object or an array of objects
+  const link = links["link"];
+  return isRecord(link) || Array.isArray(link);
 }
 
 export function isIEmptyResponse(obj: unknown): obj is IEmptyResponse {
@@ -54,7 +54,8 @@ export interface IResponse {
   // overriding value of self closing tag with the tagValueProcessor so we can override this.
   // see: https://github.com/NaturalIntelligence/fast-xml-parser/issues/544
   // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/link
-  links: { link: ILink[] } | string;
+  // NOTE: When there's only one link, ESPM returns a single object, not an array
+  links: { link: ILink | ILink[] } | string;
   errors?: IError[];
   warnings?: IWarning[];
   "@_status": Status;
@@ -67,5 +68,6 @@ export interface IEmptyResponse extends IResponse {
 
 export interface IPopoulatedResponse extends IResponse {
   id: number;
-  links: { link: ILink[] };
+  // When there's only one link, ESPM returns a single object, not an array
+  links: { link: ILink | ILink[] };
 }

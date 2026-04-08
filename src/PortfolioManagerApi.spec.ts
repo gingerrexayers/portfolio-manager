@@ -952,6 +952,16 @@ describe("PortfolioManagerApi (unit coverage paths)", () => {
     });
   });
 
+  it("propertyBuildingListGet + buildingBuildingGet endpoint wrappers delegate correctly", async () => {
+    const getSpy = vi.spyOn(unitApi, "get").mockResolvedValue({} as never);
+
+    await unitApi.propertyBuildingListGet(1);
+    await unitApi.buildingBuildingGet(2);
+
+    expect(getSpy).toHaveBeenCalledWith("property/1/building/list");
+    expect(getSpy).toHaveBeenCalledWith("building/2");
+  });
+
   describe("Connection & Sharing", () => {
     // These tests require manual setup:
     // 1. A second test account must exist.

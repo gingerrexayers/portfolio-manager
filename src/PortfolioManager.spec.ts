@@ -399,6 +399,8 @@ function createExtendedMockApi(): PortfolioManagerApi {
     propertyPropertyListGet: vi.fn(),
     propertyMetricsMonthlyGet: vi.fn(),
     propertyMetricsGet: vi.fn(),
+    propertyBuildingListGet: vi.fn(),
+    buildingBuildingGet: vi.fn(),
   } as unknown as PortfolioManagerApi;
 }
 
@@ -1131,5 +1133,192 @@ describe("PortfolioManager (minimal synthetic edge cases)", () => {
     await expect((pm as unknown as { _getAccount: () => Promise<unknown> })._getAccount()).rejects.toThrow(
       "No account found"
     );
+  });
+
+  it("getBuildingLinks returns link array from populated response", async () => {
+    const api = createExtendedMockApi();
+    const pm = new PortfolioManager(api);
+
+    vi.mocked(api.propertyBuildingListGet).mockResolvedValue({
+      response: {
+        "@_status": "Ok",
+        links: {
+          link: [
+            {
+              "@_id": "101",
+              "@_link": "/building/101",
+              "@_linkDescription": "This is the GET url for this Building.",
+              "@_httpMethod": "GET",
+            },
+          ],
+        },
+      },
+    } as never);
+
+    const links = await pm.getBuildingLinks(1);
+    expect(links).to.be.an("array");
+    expect(links.length).to.equal(1);
+    expect(links[0]["@_id"]).to.equal("101");
+  });
+
+  it("getBuildingLinks handles single link object (not array) from ESPM", async () => {
+    const api = createExtendedMockApi();
+    const pm = new PortfolioManager(api);
+
+    // ESPM returns a single object when there's only one building, not an array
+    vi.mocked(api.propertyBuildingListGet).mockResolvedValue({
+      response: {
+        "@_status": "Ok",
+        links: {
+          link: {
+            "@_id": "19556360",
+            "@_link": "/building/19556360",
+            "@_linkDescription": "This is the GET url for this Building.",
+            "@_httpMethod": "GET",
+          },
+        },
+      },
+    } as never);
+
+    const links = await pm.getBuildingLinks(1);
+    expect(links).to.be.an("array");
+    expect(links.length).to.equal(1);
+    expect(links[0]["@_id"]).to.equal("19556360");
+  });
+
+  it("getBuildingLinks returns empty array for non-populated response", async () => {
+    const api = createExtendedMockApi();
+    const pm = new PortfolioManager(api);
+
+    vi.mocked(api.propertyBuildingListGet).mockResolvedValue({
+      response: {
+        "@_status": "Ok",
+        links: "",
+      },
+    } as never);
+
+    const links = await pm.getBuildingLinks(1);
+    expect(links).toEqual([]);
+  });
+
+  it("getBuilding returns single building with mapped address", async () => {
+    const api = createExtendedMockApi();
+    const pm = new PortfolioManager(api);
+
+    vi.mocked(api.buildingBuildingGet).mockResolvedValue({
+      building: {
+        name: "Test Building",
+        constructionStatus: "Existing",
+        primaryFunction: "Office",
+        grossFloorArea: {
+          value: 5000,
+          "@_units": "Square Feet",
+          "@_temporary": "false",
+          "@_default": "N/A",
+        },
+        yearBuilt: 2010,
+        address: {
+          "@_address1": "123 Main St",
+          "@_city": "New York",
+          "@_state": "NY",
+          "@_postalCode": "10001",
+          "@_country": "US",
+        },
+        occupancyPercentage: 80,
+        isFederalProperty: false,
+      },
+    } as never);
+
+    const building = await pm.getBuilding(101);
+    expect(building.id).to.equal(101);
+    expect(building.name).to.equal("Test Building");
+    expect(building.grossFloorArea).to.equal(5000);
+    expect(building.address.address1).to.equal("123 Main St");
+    expect(building.address.city).to.equal("New York");
+    expect(building.address.state).to.equal("NY");
+    expect(building.address.country).to.equal("US");
+  });
+
+  it("getBuilding throws when building not found", async () => {
+    const api = createExtendedMockApi();
+    const pm = new PortfolioManager(api);
+
+    vi.mocked(api.buildingBuildingGet).mockResolvedValue({
+      response: { "@_status": "Ok" },
+    } as never);
+
+    await expect(pm.getBuilding(999)).rejects.toThrow("No building found");
+  });
+
+  it("getBuildings resolves all building details from links", async () => {
+    const api = createExtendedMockApi();
+    const pm = new PortfolioManager(api);
+
+    vi.spyOn(pm, "getBuildingLinks").mockResolvedValue([
+      {
+        "@_id": "101",
+        "@_link": "/building/101",
+        "@_linkDescription": "This is the GET url for this Building.",
+        "@_httpMethod": "GET",
+      },
+      {
+        "@_id": "102",
+        "@_link": "/building/102",
+        "@_linkDescription": "This is the GET url for this Building.",
+        "@_httpMethod": "GET",
+      },
+    ] as never);
+
+    vi.spyOn(pm, "getBuilding").mockResolvedValue({
+      id: 101,
+      name: "Building 1",
+      constructionStatus: "Existing",
+      primaryFunction: "Office",
+      grossFloorArea: 5000,
+      yearBuilt: 2010,
+      address: {
+        address1: "123 Main St",
+        city: "New York",
+        state: "NY",
+        postalCode: "10001",
+        country: "US",
+      },
+    } as never);
+
+    const buildings = await pm.getBuildings(1);
+    expect(buildings).to.be.an("array");
+    expect(buildings.length).to.equal(2);
+    expect(buildings[0].name).to.equal("Building 1");
+  });
+
+  it("mapBuildingToClient handles missing optional fields", async () => {
+    const api = createExtendedMockApi();
+    const pm = new PortfolioManager(api);
+
+    vi.mocked(api.buildingBuildingGet).mockResolvedValue({
+      building: {
+        name: "Minimal Building",
+        constructionStatus: "Existing",
+        primaryFunction: "Office",
+        grossFloorArea: {
+          value: 3000,
+          "@_units": "Square Feet",
+          "@_temporary": "false",
+          "@_default": "N/A",
+        },
+        yearBuilt: 2015,
+        address: {
+          "@_address1": "456 Oak Ave",
+          "@_city": "Boston",
+          "@_state": "MA",
+          "@_postalCode": "02101",
+          "@_country": "US",
+        },
+      },
+    } as never);
+
+    const building = await pm.getBuilding(1);
+    expect(building.occupancyPercentage).to.equal(undefined);
+    expect(building.isFederalProperty).to.equal(undefined);
   });
 });

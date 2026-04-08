@@ -1,6 +1,6 @@
 {
-  "name": "@gingerrexayers/portfolio-manager",
-  "version": "0.0.0-semantic-release-fork.10",
+  "name": "@benchmark-star/portfolio-manager",
+  "version": "0.0.0-semantic-release-fork.14",
   "description": "Unofficial CLI Tool and SDK for Energy Star Portfolio Manager",
   "engines": {
     "node": ">=20"

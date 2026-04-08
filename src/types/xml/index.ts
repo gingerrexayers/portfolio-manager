@@ -1,5 +1,6 @@
 export * from "./account/index.js";
 export * from "./authorization/index.js";
+export * from "./building/index.js";
 export * from "./common/index.js";
 export * from "./enum/index.js";
 export * from "./meter/index.js";
